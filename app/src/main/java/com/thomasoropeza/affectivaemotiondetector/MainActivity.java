@@ -11,10 +11,12 @@ import android.widget.TextView;
 import com.affectiva.android.affdex.sdk.Frame;
 import com.affectiva.android.affdex.sdk.detector.CameraDetector;
 import com.affectiva.android.affdex.sdk.detector.Face;
+import com.affectivaDataAnalyzation.EmotionDataAnalyzer;
+import com.affectivaDataAnalyzation.EmotionDataAnalyzerListener;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements CameraDetector.CameraEventListener, CameraDetector.ImageListener {
+public class MainActivity extends AppCompatActivity implements CameraDetector.CameraEventListener, CameraDetector.ImageListener, EmotionDataAnalyzerListener {
 
     //Table Layout displaying emotion readings
     TableLayout emotionReadingsTableLayout;
@@ -31,10 +33,19 @@ public class MainActivity extends AppCompatActivity implements CameraDetector.Ca
     //Video Frames processed per second
     int maxProcessingRate = 20;
 
+    //Data Analyzer
+    EmotionDataAnalyzer emotionDataAnalyzer;
+
+    //Parameters for Data Analyzer
+    int dataAnalyzerWindow = 50;
+    int dataAnalyzerThreshold = 80;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        emotionDataAnalyzer = new EmotionDataAnalyzer(this, dataAnalyzerWindow, dataAnalyzerThreshold);
 
         //Initializing views
         joyLevel = new TextView(this);
@@ -64,6 +75,11 @@ public class MainActivity extends AppCompatActivity implements CameraDetector.Ca
     protected void onDestroy() {
         super.onDestroy();
         cameraDetector.stop();
+    }
+
+    @Override
+    public void thresholdReached() {
+        System.out.println("Threshold reached for Emotion!!");
     }
 
     /**
@@ -96,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements CameraDetector.Ca
      * Process image results from Affectiva SDK
      * */
     @Override
-    public void onImageResults(List<Face> faces, Frame frame, float v) {
+    public void onImageResults(List<Face> faces, Frame frame, float timeStamp) {
         if (faces == null)
             return; //frame was not processed
 
@@ -112,6 +128,9 @@ public class MainActivity extends AppCompatActivity implements CameraDetector.Ca
         joyLevel.setText(String.valueOf(joy));
         angerLevel.setText(String.valueOf(anger));
         supriseLevel.setText(String.valueOf(suprise));
+
+        //analyzing the "joy" emotion
+        emotionDataAnalyzer.addEmotionData(joy, timeStamp);
     }
 
     /**
